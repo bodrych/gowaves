@@ -8,7 +8,6 @@ exclude github.com/gogo/protobuf v1.1.1
 require (
 	filippo.io/edwards25519 v1.0.0-rc.1
 	github.com/beevik/ntp v0.3.0
-	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/coocood/freecache v1.2.1
 	github.com/ericlagergren/decimal v0.0.0-20210307182354-5f8425a47c58
@@ -32,7 +31,7 @@ require (
 	github.com/starius/emsort v0.0.0-20191221202443-6f2fbdee4781
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
 	github.com/stretchr/testify v1.7.1
-	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/throttled/throttled/v2 v2.9.1
 	github.com/umbracle/fastrlp v0.0.0-20210128110402-41364ca56ca8
 	github.com/valyala/bytebufferpool v1.0.0
@@ -51,7 +50,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/golang/snappy v0.0.1 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
