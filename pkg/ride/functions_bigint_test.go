@@ -7,20 +7,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/wavesplatform/gowaves/pkg/crypto"
 	rideMath "github.com/wavesplatform/gowaves/pkg/ride/math"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var env environment = &mockRideEnvironment{
-	validateInternalPaymentsFunc: func() bool {
-		return false
-	},
-	rideV6ActivatedFunc: func() bool {
-		return false
-	},
-}
 
 func TestPowBigInt(t *testing.T) {
 	for _, test := range []struct {
@@ -47,7 +39,7 @@ func TestPowBigInt(t *testing.T) {
 		{[]rideType{toRideBigInt(math.MaxInt64)}, true, nil},
 		{[]rideType{}, true, nil},
 	} {
-		r, err := powBigInt(env, test.args...)
+		r, err := powBigInt(nil, test.args...)
 		if test.fail {
 			assert.Error(t, err)
 		} else {
@@ -71,6 +63,8 @@ func BenchmarkPowBigInt(b *testing.B) {
 }
 
 func TestLogBigInt(t *testing.T) {
+	v1, ok := big.NewInt(0).SetString("999996034266679907751935378141784045", 10)
+	require.True(t, ok)
 	for _, test := range []struct {
 		args []rideType
 		fail bool
@@ -82,6 +76,7 @@ func TestLogBigInt(t *testing.T) {
 		{[]rideType{toRideBigInt(-16), rideInt(0), toRideBigInt(2), rideInt(0), rideInt(0), newCeiling(nil)}, true, nil},
 		{[]rideType{toRideBigInt(1), rideInt(16), toRideBigInt(10), rideInt(0), rideInt(0), newCeiling(nil)}, false, toRideBigInt(-16)},
 		{[]rideType{toRideBigInt(100), rideInt(0), toRideBigInt(10), rideInt(0), rideInt(0), newUp(nil)}, false, toRideBigInt(2)},
+		{[]rideType{rideBigInt{v: v1}, rideInt(18), toRideBigInt(10001), rideInt(4), rideInt(0), newDown(nil)}, false, toRideBigInt(414485)},
 		{[]rideType{toRideBigInt(100), rideInt(0), toRideBigInt(10), rideInt(0), rideInt(0), newUp(nil), newDown(nil)}, true, nil},
 		{[]rideType{toRideBigInt(math.MaxInt64), rideInt(0), toRideBigInt(100), rideInt(0), rideInt(0), newNoAlg(nil)}, true, nil},
 		{[]rideType{toRideBigInt(math.MaxInt64), rideInt(0), toRideBigInt(100), rideString("0"), rideInt(0), newUp(nil)}, true, nil},
@@ -256,15 +251,17 @@ func TestModuloBigInt(t *testing.T) {
 		r    rideType
 	}{
 		{[]rideType{toRideBigInt(10), toRideBigInt(6)}, false, toRideBigInt(4)},
-		{[]rideType{toRideBigInt(-10), toRideBigInt(6)}, false, toRideBigInt(2)},
-		{[]rideType{toRideBigInt(10), toRideBigInt(-6)}, false, toRideBigInt(-2)},
+		{[]rideType{toRideBigInt(-10), toRideBigInt(6)}, false, toRideBigInt(-4)},
+		{[]rideType{toRideBigInt(10), toRideBigInt(-6)}, false, toRideBigInt(4)},
 		{[]rideType{toRideBigInt(-10), toRideBigInt(-6)}, false, toRideBigInt(-4)},
 		{[]rideType{toRideBigInt(2), toRideBigInt(2)}, false, toRideBigInt(0)},
+		{[]rideType{rideBigInt{v: decode2CBigInt(crypto.MustBytesFromBase58("A98D6oABd9yshGm29dpxXzSeMi1LhCBSPeGxm7MHVB1c"))}, toRideBigInt(330)}, false, toRideBigInt(-243)},
 		{[]rideType{toRideBigInt(10), toRideBigInt(0)}, true, nil},
 		{[]rideType{toRideBigInt(1), rideUnit{}}, true, nil},
 		{[]rideType{toRideBigInt(1), rideString("x")}, true, nil},
 		{[]rideType{toRideBigInt(1)}, true, nil},
 		{[]rideType{}, true, nil},
+		{[]rideType{rideBigInt{v: decode2CBigInt(crypto.MustBytesFromBase58("EGhEd4At3siPKgnKdgEgtZvBUFNYn7EoKnsSx35HwJ4a"))}, toRideBigInt(100)}, false, toRideBigInt(-53)},
 	} {
 		r, err := moduloBigInt(nil, test.args...)
 		if test.fail {
@@ -790,7 +787,7 @@ func TestSqrtBigInt(t *testing.T) {
 		{[]rideType{toRideBigInt(math.MaxInt64)}, true, nil},
 		{[]rideType{}, true, nil},
 	} {
-		r, err := sqrtBigInt(env, test.args...)
+		r, err := sqrtBigInt(nil, test.args...)
 		if test.fail {
 			assert.Error(t, err)
 		} else {

@@ -4,7 +4,7 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	"github.com/umbracle/fastrlp"
@@ -27,24 +27,21 @@ type EthereumPrivateKey btcec.PrivateKey
 
 // EthereumPublicKey returns *EthereumPublicKey from corresponding EthereumPrivateKey.
 func (esk *EthereumPrivateKey) EthereumPublicKey() *EthereumPublicKey {
-	return (*EthereumPublicKey)(&esk.PublicKey)
+	return (*EthereumPublicKey)((*btcec.PrivateKey)(esk).PubKey())
 }
 
 // EthereumPublicKey is an Ethereum ecdsa.PublicKey.
 type EthereumPublicKey btcec.PublicKey
 
-// MarshalJSON marshal EthereumPublicKey in base58 encoding.
-// This method doesn't recognize hex encoding according to the scala node implementation.
+// MarshalJSON marshal EthereumPublicKey in hex encoding.
 func (epk EthereumPublicKey) MarshalJSON() ([]byte, error) {
-	// nickeskov: can't fail
-	data, _ := epk.MarshalBinary()
-	return B58Bytes(data).MarshalJSON()
+	data := epk.SerializeXYCoordinates()
+	return HexBytes(data).MarshalJSON()
 }
 
-// UnmarshalJSON unmarshal EthereumPublicKey from base58 encoding.
-// This method doesn't recognize hex encoding according to the scala node implementation.
+// UnmarshalJSON unmarshal EthereumPublicKey from hex encoding.
 func (epk *EthereumPublicKey) UnmarshalJSON(bytes []byte) error {
-	pkBytes := B58Bytes{}
+	pkBytes := HexBytes{}
 	err := pkBytes.UnmarshalJSON(bytes)
 	if err != nil {
 		return err
@@ -120,7 +117,7 @@ func (epk *EthereumPublicKey) UnmarshalBinary(data []byte) error {
 
 // ToECDSA returns the public key as a *ecdsa.PublicKey.
 func (epk *EthereumPublicKey) ToECDSA() *ecdsa.PublicKey {
-	return (*ecdsa.PublicKey)(epk)
+	return (*btcec.PublicKey)(epk).ToECDSA()
 }
 
 // SerializeUncompressed serializes a public key in a 65-byte uncompressed format.
@@ -148,12 +145,8 @@ func (epk *EthereumPublicKey) EthereumAddress() EthereumAddress {
 }
 
 func (epk *EthereumPublicKey) copy() *EthereumPublicKey {
-	cpy := EthereumPublicKey{
-		Curve: epk.Curve,
-		X:     epk.X,
-		Y:     epk.Y,
-	}
-	return &cpy
+	cpy := btcec.PublicKey(*epk)
+	return (*EthereumPublicKey)(&cpy)
 }
 
 type EthereumSigner interface {

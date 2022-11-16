@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"testing"
@@ -12,27 +11,17 @@ import (
 	g "github.com/wavesplatform/gowaves/pkg/grpc/generated/waves/node/grpc"
 	"github.com/wavesplatform/gowaves/pkg/proto"
 	"github.com/wavesplatform/gowaves/pkg/settings"
-	"github.com/wavesplatform/gowaves/pkg/state"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestGetBalances(t *testing.T) {
-	dataDir := t.TempDir()
 	params := defaultStateParams()
-	st, err := state.NewState(dataDir, true, params, settings.MainNetSettings)
-	require.NoError(t, err)
-	ctx, cancel := context.WithCancel(context.Background())
-	err = server.initServer(st, nil, nil)
+	st := newTestState(t, true, params, settings.MainNetSettings)
+	ctx := withAutoCancel(t, context.Background())
+	err := server.initServer(st, nil, nil)
 	require.NoError(t, err)
 
-	conn := connect(t, grpcTestAddr)
-	t.Cleanup(func() {
-		cancel()
-		err := conn.Close()
-		require.NoError(t, err)
-		err = st.Close()
-		require.NoError(t, err)
-	})
+	conn := connectAutoClose(t, grpcTestAddr)
 
 	cl := g.NewAccountsApiClient(conn)
 	addr, err := proto.NewAddressFromString("3PAWwWa6GbwcJaFzwqXQN5KQm7H96Y7SHTQ")
@@ -65,17 +54,12 @@ func TestGetActiveLeases(t *testing.T) {
 	st := stateWithCustomGenesis(t, genesisPath)
 	sets, err := st.BlockchainSettings()
 	require.NoError(t, err)
-	ctx, cancel := context.WithCancel(context.Background())
-	sch := createWallet(ctx, st, sets)
+	ctx := withAutoCancel(t, context.Background())
+	sch := createTestNetWallet(t)
 	err = server.initServer(st, nil, sch)
 	require.NoError(t, err)
 
-	conn := connect(t, grpcTestAddr)
-	t.Cleanup(func() {
-		cancel()
-		err = conn.Close()
-		require.NoError(t, err)
-	})
+	conn := connectAutoClose(t, grpcTestAddr)
 
 	cl := g.NewAccountsApiClient(conn)
 	addr, err := proto.NewAddressFromString("3Fv3jiLvLS4c4N1ZvSLac3HBGUzaHDMvjN1")
@@ -113,19 +97,12 @@ func TestResolveAlias(t *testing.T) {
 	genesisPath, err := globalPathFromLocal("testdata/genesis/alias_genesis.json")
 	require.NoError(t, err)
 	st := stateWithCustomGenesis(t, genesisPath)
-	sets, err := st.BlockchainSettings()
-	require.NoError(t, err)
-	ctx, cancel := context.WithCancel(context.Background())
-	sch := createWallet(ctx, st, sets)
+	ctx := withAutoCancel(t, context.Background())
+	sch := createTestNetWallet(t)
 	err = server.initServer(st, nil, sch)
 	require.NoError(t, err)
 
-	conn := connect(t, grpcTestAddr)
-	t.Cleanup(func() {
-		cancel()
-		err := conn.Close()
-		require.NoError(t, err)
-	})
+	conn := connectAutoClose(t, grpcTestAddr)
 
 	cl := g.NewAccountsApiClient(conn)
 
@@ -133,8 +110,8 @@ func TestResolveAlias(t *testing.T) {
 	alias := proto.NewAlias('W', aliasStr)
 	correctAddr, err := st.AddrByAlias(*alias)
 	require.NoError(t, err)
-	correctAddrBody := correctAddr.Body()
+	correctAddrBytes := correctAddr.Bytes()
 	addr, err := cl.ResolveAlias(ctx, &wrapperspb.StringValue{Value: aliasStr})
 	require.NoError(t, err)
-	assert.True(t, bytes.Equal(correctAddrBody, addr.Value))
+	assert.Equal(t, correctAddrBytes, addr.Value)
 }

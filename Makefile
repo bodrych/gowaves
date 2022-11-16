@@ -13,7 +13,7 @@ export GO111MODULE=on
 
 all: vendor vetcheck fmtcheck build gotest mod-clean
 
-ci: vendor vetcheck fmtcheck build release-node gotest mod-clean
+ci: vendor vetcheck fmtcheck build release-node gotest-race-coverage mod-clean
 
 ver:
 	@echo Building version: $(VERSION)
@@ -33,13 +33,18 @@ build-forkdetector-linux-arm:
 gotest:
 	go test -cover $$(go list ./... | grep -v "/itests")
 
-gotest-coverage:
+gotest-race-coverage:
 	go test -race -coverprofile=coverage.txt -covermode=atomic $$(go list ./... | grep -v "/itests")
 
 itest:
 	mkdir -p build/config
 	mkdir -p build/logs
-	go test $$(go list ./... | grep "/itests")
+	go test -parallel 3 $$(go list ./... | grep "/itests")
+
+itest-ci:
+	mkdir -p build/config
+	mkdir -p build/logs
+	go test -parallel 1 $$(go list ./... | grep "/itests")
 
 fmtcheck:
 	@gofmt -l -s $(SOURCE_DIRS) | grep ".*\.go" | grep -v ".*bn254/.*\.go"; if [ "$$?" = "0" ]; then exit 1; fi
@@ -66,7 +71,7 @@ vendor:
 
 vetcheck:
 	go list ./... | grep -v bn254 | xargs go vet
-	golangci-lint run --skip-dirs pkg/crypto/internal/groth16/bn256/utils/bn254
+	golangci-lint run --skip-dirs pkg/crypto/internal/groth16/bn256/utils/bn254 --timeout 5m
 
 build-chaincmp-linux:
 	@CGO_ENABLE=0 GOOS=linux GOARCH=amd64 go build -o build/bin/linux-amd64/chaincmp -ldflags="-X main.version=$(VERSION)" ./cmd/chaincmp

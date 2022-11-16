@@ -52,7 +52,14 @@ func (a *scriptCaller) callAccountScriptWithOrder(order proto.Order, lastBlockIn
 	if err != nil {
 		return errors.Wrap(err, "failed to retrieve account script")
 	}
-	env, err := ride.NewEnvironment(a.settings.AddressSchemeCharacter, a.state, a.settings.InternalInvokePaymentsValidationAfterHeight, info.blockV5Activated, info.rideV6Activated)
+	env, err := ride.NewEnvironment(
+		a.settings.AddressSchemeCharacter,
+		a.state,
+		a.settings.InternalInvokePaymentsValidationAfterHeight,
+		info.blockV5Activated,
+		info.rideV6Activated,
+		info.invokeExpressionActivated,
+	)
 	if err != nil {
 		return errors.Wrap(err, "failed to create RIDE environment")
 	}
@@ -104,7 +111,14 @@ func (a *scriptCaller) callAccountScriptWithTx(tx proto.Transaction, params *app
 	if err != nil {
 		return err
 	}
-	env, err := ride.NewEnvironment(a.settings.AddressSchemeCharacter, a.state, a.settings.InternalInvokePaymentsValidationAfterHeight, params.blockV5Activated, params.rideV6Activated)
+	env, err := ride.NewEnvironment(
+		a.settings.AddressSchemeCharacter,
+		a.state,
+		a.settings.InternalInvokePaymentsValidationAfterHeight,
+		params.blockV5Activated,
+		params.rideV6Activated,
+		params.invokeExpressionActivated,
+	)
 	if err != nil {
 		return errors.Wrapf(err, "failed to call account script on transaction '%s'", base58.Encode(id))
 	}
@@ -185,7 +199,14 @@ func (a *scriptCaller) callAssetScriptCommon(env *ride.EvaluationEnvironment, as
 }
 
 func (a *scriptCaller) callAssetScriptWithScriptTransfer(tr *proto.FullScriptTransfer, assetID crypto.Digest, params *appendTxParams) (ride.Result, error) {
-	env, err := ride.NewEnvironment(a.settings.AddressSchemeCharacter, a.state, a.settings.InternalInvokePaymentsValidationAfterHeight, params.blockV5Activated, params.rideV6Activated)
+	env, err := ride.NewEnvironment(
+		a.settings.AddressSchemeCharacter,
+		a.state,
+		a.settings.InternalInvokePaymentsValidationAfterHeight,
+		params.blockV5Activated,
+		params.rideV6Activated,
+		params.invokeExpressionActivated,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +215,14 @@ func (a *scriptCaller) callAssetScriptWithScriptTransfer(tr *proto.FullScriptTra
 }
 
 func (a *scriptCaller) callAssetScript(tx proto.Transaction, assetID crypto.Digest, params *appendTxParams) (ride.Result, error) {
-	env, err := ride.NewEnvironment(a.settings.AddressSchemeCharacter, a.state, a.settings.InternalInvokePaymentsValidationAfterHeight, params.blockV5Activated, params.rideV6Activated)
+	env, err := ride.NewEnvironment(
+		a.settings.AddressSchemeCharacter,
+		a.state,
+		a.settings.InternalInvokePaymentsValidationAfterHeight,
+		params.blockV5Activated,
+		params.rideV6Activated,
+		params.invokeExpressionActivated,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +234,14 @@ func (a *scriptCaller) callAssetScript(tx proto.Transaction, assetID crypto.Dige
 }
 
 func (a *scriptCaller) invokeFunction(tree *ast.Tree, tx proto.Transaction, info *fallibleValidationParams, scriptAddress proto.WavesAddress) (ride.Result, error) {
-	env, err := ride.NewEnvironment(a.settings.AddressSchemeCharacter, a.state, a.settings.InternalInvokePaymentsValidationAfterHeight, info.blockV5Activated, info.rideV6Activated)
+	env, err := ride.NewEnvironment(
+		a.settings.AddressSchemeCharacter,
+		a.state,
+		a.settings.InternalInvokePaymentsValidationAfterHeight,
+		info.blockV5Activated,
+		info.rideV6Activated,
+		info.invokeExpressionActivated,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create RIDE environment")
 	}
@@ -290,6 +325,9 @@ func (a *scriptCaller) invokeFunction(tree *ast.Tree, tx proto.Transaction, info
 		abiPayments := transaction.TxKind.DecodedData().Payments
 		scriptPayments := make([]proto.ScriptPayment, 0, len(abiPayments))
 		for _, p := range abiPayments {
+			if p.Amount <= 0 && info.checkerInfo.height > a.settings.InvokeNoZeroPaymentsAfterHeight {
+				return nil, errors.Errorf("invalid payment amount '%d'", p.Amount)
+			}
 			optAsset := proto.NewOptionalAsset(p.PresentAssetID, p.AssetID)
 			scriptPayment := proto.ScriptPayment{Amount: uint64(p.Amount), Asset: optAsset}
 			scriptPayments = append(scriptPayments, scriptPayment)

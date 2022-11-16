@@ -293,7 +293,7 @@ func (e *treeEvaluator) evaluate() (Result, error) {
 	switch res := r.(type) {
 	case rideBoolean:
 		return ScriptResult{res: bool(res), complexity: e.complexity()}, nil
-	case rideObject:
+	case rideScriptResult, rideWriteSet, rideTransferSet:
 		a, err := objectToActions(e.env, res)
 		if err != nil {
 			return nil, EvaluationFailure.Wrap(err, "failed to convert evaluation result")
@@ -350,13 +350,13 @@ func (e *treeEvaluator) evaluateNativeFunction(name string, arguments []ast.Node
 	if !ok {
 		return nil, EvaluationFailure.Errorf("failed to get cost of system function '%s'", name)
 	}
-	defer func() {
-		e.cc.addNativeFunctionComplexity(cost)
-	}()
 	args, err := e.materializeArguments(arguments)
 	if err != nil {
 		return nil, EvaluationErrorPush(err, "failed to call system function '%s'", name)
 	}
+	defer func() {
+		e.cc.addNativeFunctionComplexity(cost)
+	}()
 	r, err := f(e.env, args...)
 	if err != nil {
 		return nil, EvaluationErrorPush(err, "failed to call system function '%s'", name)
